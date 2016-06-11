@@ -60,13 +60,13 @@ class Net:
       batches = [(X[_:_+batch_size], y[_:_+batch_size]) for _ in range(0, n, batch_size)]
       for X_batch, y_batch in batches:
         y_hat = self.forward(X_batch)
-        e = loss.get_error(y_batch, y_hat, 1)
+        e = loss.get_error(y_batch, y_hat)
         self.backward(e)
 
         for layer in self.layers:
           if layer.has_param:
             optimizer.update(layer.get_param_grad())
-      print('cost:', loss.get_cost(y_batch, y_hat, 1))
+      print('cost:', loss.get_cost(y_batch, y_hat))
 
   def predict(self, X):
     return self.forward(X)
@@ -113,13 +113,13 @@ def grad_check():
 
 if __name__ == '__main__':
   np.random.seed(1)
-  X = np.random.rand(20, 5)
-  y = np.sin(X.sum(axis=1))[:,np.newaxis]
+  X = np.random.rand(80, 5)
+  y = (X.sum(axis=1)**3 + 1)[:,np.newaxis]
 
-  net = Net([Dense(5,5), Sigmoid(), Dense(5,1), Sigmoid()])
-  net.train(X, y, loss=MSE(), optimizer=SGD(lr=1.5, eta=0), n_epoch=500, batch_size=10)
+  net = Net([Dense(5,1), Linear()])
+  net.fit(X, y, loss=MSE(), optimizer=SGD(lr=0.1, eta=0), n_epoch=150, batch_size=5)
 
-  y_hat = net.forward(X)
+  y_hat = net.predict(X)
 
   pl.style.use('ggplot')
   pl.plot(y, '+')
