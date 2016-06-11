@@ -20,7 +20,7 @@ if __name__ == '__main__':
   y_hat = model.predict(X)
 
   model1 = Sequential([
-      Dense(1, input_dim=5),  #, weights=[W.T, b]),
+      Dense(1, input_dim=5, weights=[W.T, b]),
       Activation('linear')
     ])
   sgd = SGD(lr=0.1, decay=0, momentum=0, nesterov=False)
