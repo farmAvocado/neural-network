@@ -16,8 +16,8 @@ if __name__ == '__main__':
   W = model2.layers[0].W.copy()
   b = model2.layers[0].b.copy()
 
-  model2.train(X, y, loss=util.MSE(), optimizer=util.SGD(0.1, 0), n_epoch=150, batch_size=20)
-  y_hat2 = model2.forward(X)
+  model2.fit(X, y, loss=util.MSE(), optimizer=util.SGD(0.1, 0), n_epoch=150, batch_size=20)
+  y_hat2 = model2.predict(X)
 
   model = Sequential([
       Dense(1, input_dim=5),  #, weights=[W.T, b]),

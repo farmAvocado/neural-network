@@ -54,7 +54,7 @@ class Net:
   def __init__(self, layers):
     self.layers = layers
 
-  def train(self, X, y, loss=MSE(), optimizer=SGD(lr=0.1, eta=0), n_epoch=1, batch_size=1):
+  def fit(self, X, y, loss=MSE(), optimizer=SGD(lr=0.1, eta=0), n_epoch=1, batch_size=1):
     n = X.shape[0]
     for i in range(n_epoch):
       batches = [(X[_:_+batch_size], y[_:_+batch_size]) for _ in range(0, n, batch_size)]
@@ -67,6 +67,9 @@ class Net:
           if layer.has_param:
             optimizer.update(layer.get_param_grad())
       print('cost:', loss.get_cost(y_batch, y_hat, 1))
+
+  def predict(self, X):
+    return self.forward(X)
 
   def forward(self, X):
     for l in self.layers:
