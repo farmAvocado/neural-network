@@ -5,10 +5,10 @@ import numpy as np
 ############################################################
 class MSE:
   def get_cost(self, y, y_hat):
-    return 0.5 * np.mean((y - y_hat)**2, axis=0)
+    return np.mean((y - y_hat)**2, axis=0)
 
   def get_error(self, y, y_hat):
-    return y_hat - y
+    return 2 * (y_hat - y)
 
 class CE:
   def get_cost(self, y, y_hat):
