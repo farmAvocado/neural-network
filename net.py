@@ -4,6 +4,8 @@ from util import *
 
 RNG = np.random.RandomState(17)
 
+# connection layer
+############################################################
 class Dense:
   def __init__(self, n_in, n_out):
     self.has_param = True
@@ -26,6 +28,9 @@ class Dense:
   def get_param_grad(self):
     return [(self.W, self.W_grad), (self.b, self.b_grad)]
 
+
+# activation layer
+############################################################
 class Linear:
   def __init__(self):
     self.has_param = False
@@ -50,6 +55,9 @@ class Sigmoid:
     self.outp = self.outp * (1 - self.outp) * X
     return self.outp
 
+
+# network
+############################################################
 class Net:
   def __init__(self, layers):
     self.layers = layers
