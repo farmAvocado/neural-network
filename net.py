@@ -81,34 +81,7 @@ class Net:
       X = l.backward(X)
 
 def grad_check():
-  X = np.arange(17).reshape(1, 17)
-  y = np.array([[2]])
-
-  net = Net([Dense(17,1), Linear()])
-  y_hat = net.forward(X)
-  e = y_hat - y
-  net.backward(e)
-
-  e = 0.5 * (y_hat - y)**2
-  W_grad = net.layers[0].W_grad.copy()
-  b_grad = net.layers[0].b_grad
-  W_grad1 = np.empty_like(net.layers[0].W_grad)
-  b_grad1 = 0
-  W = net.layers[0].W
-  for i in range(W.shape[0]):
-    for j in range(W.shape[1]):
-      W[i,j] += 1e-5
-      e1 = 0.5 * (net.forward(X) - y)**2
-      W_grad1[i,j] = (e1 - e) / 1e-5
-      W[i,j] -= 1e-5
-
-  net.layers[0].b += 1e-5
-  e1 = 0.5 * (net.forward(X) - y)**2
-  b_grad1 = (e1 - e) / 1e-5
-
-
-  print(b_grad)
-  print(b_grad1)
+  pass
 
 
 if __name__ == '__main__':
