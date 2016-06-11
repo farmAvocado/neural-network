@@ -55,6 +55,18 @@ class Sigmoid:
     self.outp = self.outp * (1 - self.outp) * X
     return self.outp
 
+class Relu:
+  def __init__(self):
+    self.has_param = False
+
+  def forward(self, X):
+    self.outp = np.maximum(0, X)
+    return self.outp
+
+  def backward(self, X):
+    self.outp = (self.outp > 0).astype('double') * X
+    return self.outp
+
 
 # network
 ############################################################
@@ -94,11 +106,11 @@ def grad_check():
 
 if __name__ == '__main__':
   np.random.seed(1)
-  X = np.random.rand(80, 5)
+  X = np.random.rand(20, 5)
   y = (X.sum(axis=1)**3 + 1)[:,np.newaxis]
 
-  net = Net([Dense(5,1), Linear()])
-  net.fit(X, y, loss=MSE(), optimizer=SGD(lr=0.1, eta=0), n_epoch=150, batch_size=5)
+  net = Net([Dense(5,1), Relu()])
+  net.fit(X, y, loss=MSE(), optimizer=SGD(lr=0.1, eta=0), n_epoch=50, batch_size=5)
 
   y_hat = net.predict(X)
 

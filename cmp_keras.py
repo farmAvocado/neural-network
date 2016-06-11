@@ -11,7 +11,7 @@ if __name__ == '__main__':
   X = np.random.rand(20, 5)
   y = (X.sum(axis=1)**3 + 1)[:,np.newaxis]
 
-  model = net.Net([net.Dense(5,1), net.Sigmoid()])
+  model = net.Net([net.Dense(5,1), net.Relu()])
 
   W = model.layers[0].W.copy()
   b = model.layers[0].b.copy()
@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
   model1 = Sequential([
       Dense(1, input_dim=5, weights=[W.T, b]),
-      Activation('sigmoid')
+      Activation('relu')
     ])
   sgd = SGD(lr=1.1, decay=0, momentum=0, nesterov=False)
   model1.compile(loss='mse', optimizer=sgd)
