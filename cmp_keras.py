@@ -16,17 +16,17 @@ if __name__ == '__main__':
   W = model.layers[0].W.copy()
   b = model.layers[0].b.copy()
 
-  model.fit(X, y, loss=util.MSE(), optimizer=util.SGD(1.1, 0), n_epoch=5, batch_size=1)
+  model.fit(X, y, loss=util.MSE(), optimizer=util.SGD(0.1, 0), n_epoch=5, batch_size=10)
   y_hat = model.predict(X)
 
   model1 = Sequential([
       Dense(1, input_dim=5, weights=[W.T, b]),
       Activation('relu')
     ])
-  sgd = SGD(lr=1.1, decay=0, momentum=0, nesterov=False)
+  sgd = SGD(lr=0.1, decay=0, momentum=0, nesterov=False)
   model1.compile(loss='mse', optimizer=sgd)
 
-  model1.fit(X, y, nb_epoch=5, batch_size=1, shuffle=False)
+  model1.fit(X, y, nb_epoch=5, batch_size=10, shuffle=False)
   y_hat1 = model1.predict(X)
 
   print(np.allclose(y_hat, y_hat1))
