@@ -4,7 +4,7 @@ from keras.layers import Dense, Activation
 from keras.optimizers import SGD
 import numpy as np
 import pylab as pl
-import net
+import net, util
 
 if __name__ == '__main__':
   np.random.seed(1)
@@ -16,7 +16,7 @@ if __name__ == '__main__':
   W = model2.layers[0].W.copy()
   b = model2.layers[0].b.copy()
 
-  model2.train(X, y, n_epochs=50, batch_size=20, lr=0.1)
+  model2.train(X, y, loss=util.MSE(), optimizer=util.SGD(0.1, 0), n_epoch=150, batch_size=20)
   y_hat2 = model2.forward(X)
 
   model = Sequential([
@@ -26,7 +26,7 @@ if __name__ == '__main__':
   sgd = SGD(lr=0.1, decay=0, momentum=0, nesterov=False)
   model.compile(loss='mse', optimizer=sgd)
 
-  model.fit(X, y, nb_epoch=50, batch_size=20)
+  model.fit(X, y, nb_epoch=150, batch_size=20)
   y_hat = model.predict(X)
 
   pl.plot(y, '-^')
