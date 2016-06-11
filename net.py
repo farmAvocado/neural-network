@@ -68,20 +68,6 @@ class Net:
             optimizer.update(layer.get_param_grad())
       print('cost:', loss.get_cost(y_batch, y_hat, 1))
 
-  def train1(self, X, y, lr=0.005, c=0, batch_size=100, n_epochs=100):
-    for it in range(n_epochs):
-      batch = [(X[_:_+batch_size], y[_:_+batch_size]) for _ in range(0, X.shape[0], batch_size)]
-      for X_batch, y_batch in batch:
-        y_hat = self.forward(X_batch)
-        error = (y_hat - y_batch)
-        self.backward(error)
-
-        for l in self.layers:
-          if l.has_param:
-            l.W = l.W - lr * l.W_grad - c * l.W
-            l.b = l.b - lr * l.b_grad
-#      print('error:', np.sum(error**2))
-
   def forward(self, X):
     for l in self.layers:
       X = l.forward(X)
@@ -128,8 +114,7 @@ if __name__ == '__main__':
   y = np.sin(X.sum(axis=1))[:,np.newaxis]
 
   net = Net([Dense(5,5), Sigmoid(), Dense(5,1), Sigmoid()])
-#  net.train(X, y, n_epochs=1, lr=1.5, batch_size=10)
-  net.train1(X, y, loss=MSE(), optimizer=SGD(lr=1.5, eta=0), n_epoch=500, batch_size=10)
+  net.train(X, y, loss=MSE(), optimizer=SGD(lr=1.5, eta=0), n_epoch=500, batch_size=10)
 
   y_hat = net.forward(X)
 
