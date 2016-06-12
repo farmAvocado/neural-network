@@ -100,6 +100,9 @@ class Net:
     for l in self.layers[::-1]:
       X = l.backward(X)
 
+
+# misc.
+############################################################
 def grad_check():
   pass
 
