@@ -7,10 +7,10 @@ RNG = np.random.RandomState(17)
 # connection layer
 ############################################################
 class Dense:
-  def __init__(self, n_in, n_out):
+  def __init__(self, n_in, n_out, initializer=glorot_normal):
     self.has_param = True
-    self.W = RNG.normal(size=(n_out, n_in))
-    self.b = RNG.normal(size=n_out)
+    self.W = glorot_normal(RNG, shape=(n_out, n_in))
+    self.b = glorot_normal(RNG, shape=n_out)
     self.W_grad = None
     self.b_grad = None
 

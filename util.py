@@ -29,6 +29,8 @@ class SGD:
 
 # initializer
 ############################################################
+def glorot_normal(rng, shape):
+  return rng.normal(scale=np.sqrt(2/np.sum(shape)), size=shape)
 
 
 
