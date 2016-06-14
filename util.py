@@ -25,3 +25,10 @@ class SGD:
   def update(self, param_grad):
     for param, grad in param_grad:
       param -= (self.lr * grad + self.eta * param)
+
+
+# initializer
+############################################################
+
+
+
