@@ -67,6 +67,20 @@ class Relu:
     self.outp = (self.outp > 0).astype('double') * X
     return self.outp
 
+class SX:
+  def __init__(self):
+    self.has_params = False
+
+  def forward(self, X):
+    z = X - X.max(axis=-1, keepdims=True)
+    z = np.exp(z)
+    z /= z.sum(axis=-1, keepdims=True)
+    self.outp = z
+    return self.outp
+
+  def backward(self, X):
+    pass
+
 
 # network
 ############################################################

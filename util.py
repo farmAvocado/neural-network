@@ -21,13 +21,12 @@ class CCE:
     return -np.log(z.prod())
 
   def get_error(self, y, y_hat):
-    f = y_hat.sum(axis=-1)
-    z = -np.choose(y.ravel(), y_hat.T) / f**2
-    e = np.empty_like(y_hat)
-    e[...] = z[:, np.newaxis]
-    e[range(y.shape[0]), y.ravel()] += 1 / f
-    return e
-
+    a = y_hat.sum(axis=-1, keepdims=True)
+    b = np.ones_like(y_hat)
+    b /= a
+    c = 1 / np.choose(y, y_hat.T)
+    b[range(y_hat.shape[0]), y.ravel()] -= c
+    return b
 
 # optimizer
 ############################################################
@@ -45,6 +44,4 @@ class SGD:
 ############################################################
 def glorot_normal(rng, shape):
   return rng.normal(scale=np.sqrt(2/np.sum(shape)), size=shape)
-
-
 
