@@ -45,3 +45,10 @@ class SGD:
 def glorot_normal(rng, shape):
   return rng.normal(scale=np.sqrt(2/np.sum(shape)), size=shape)
 
+
+# data preprocessing
+############################################################
+def standardize(x):
+  x -= x.mean(axis=0)
+  x /= x.std(axis=0)
+  return x
