@@ -12,21 +12,20 @@ class MSE:
 
 # categorical cross entropy
 class CCE:
-  def normalize(self, y_hat):
-    return y_hat / y_hat.sum(axis=-1, keepdims=True)
-
   def get_cost(self, y, y_hat):
-    y_hat1 = self.normalize(y_hat)
-    z = np.choose(y.ravel(), y_hat1.T)
-    return -np.log(z.prod())
+    ''' Assumes y_hat is prob dist. '''
+    a = y_hat / y_hat.sum(axis=-1, keepdims=True)
+    a = np.choose(y.ravel(), a.T)
+    return -np.log(a.prod()) / y.shape[0]
 
   def get_error(self, y, y_hat):
-    a = y_hat.sum(axis=-1, keepdims=True)
-    b = np.ones_like(y_hat)
-    b /= a
-    c = 1 / np.choose(y, y_hat.T)
-    b[range(y_hat.shape[0]), y.ravel()] -= c
-    return b
+    z = np.empty_like(y_hat)
+    a = 1 / y_hat.sum(axis=1, keepdims=True)
+    z[...] = a
+    b = 1 / np.choose(y.ravel(), y_hat.T)
+    z[range(y.shape[0]), y.ravel()] -= b
+    return z / y.shape[0]
+
 
 # optimizer
 ############################################################
