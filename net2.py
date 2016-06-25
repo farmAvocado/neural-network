@@ -75,6 +75,20 @@ class MSE:
   def get_error(self, y, y_hat):
     return 2 * (y_hat - y) / y.shape[0]
 
+class CCE:
+  def get_cost(self, y, y_hat):
+    a = y_hat / y_hat.sum(axis=1, keepdims=True)
+    b = y.choose(a.T)
+    return -np.log(b.prod()) / y.shape[0]
+
+  def get_error(self, y, y_hat):
+    a = 1 / y_hat.sum(axis=1, keepdims=True)
+    b = 1 / y.choose(y_hat.T)
+    z = a.repeat(y_hat.shape[1], axis=1)
+    z[range(y.shape[0]),y] -= b
+    z /= y.shape[0]
+    return z
+
 
 # net
 ############################################################

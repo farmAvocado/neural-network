@@ -47,6 +47,31 @@ def test_classification():
   pl.scatter(range(y_hat.shape[0]), y_hat, c='m', marker='o')
   pl.show()
 
+def test_classification2():
+  X = np.random.rand(50, 2)
+  X[:20,:] += 1
+  y = np.zeros(50, dtype='int')
+  y[:20] = 1
+
+  np.random.seed(1)
+  np.random.shuffle(X)
+  np.random.seed(1)
+  np.random.shuffle(y)
+
+  X = net2.standardize(X)
+  model = net2.Net([net2.Dense(X.shape[1],10), 
+                   net2.Relu(),
+                   net2.Dense(10,2),
+                   net2.Relu(),
+                 ])
+  model.fit(X, y, loss=net2.CCE(), optimizer=net2.SGD(1e-2, 0.1), n_epoch=100, batch_size=10)
+  y_hat = model.predict(X)
+
+  y_hat = y_hat.argmax(axis=1) - 0.1
+  pl.scatter(range(y.shape[0]), y, c='b', marker='>')
+  pl.scatter(range(y_hat.shape[0]), y_hat, c='m', marker='o')
+  pl.show()
+
 
 if __name__ == '__main__':
-  test_classification()
+  test_classification2()
