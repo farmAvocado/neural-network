@@ -9,7 +9,7 @@ class Dense:
     self.n_in = n_in
     self.n_out = n_out
     self.W = np.random.rand(n_out, n_in)
-    self.b = np.random.rand(n_out)
+    self.b = np.zeros(n_out)
 
   def forward(self, X):
     self.inp = X
