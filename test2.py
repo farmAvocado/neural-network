@@ -72,6 +72,46 @@ def test_classification2():
   pl.scatter(range(y_hat.shape[0]), y_hat, c='m', marker='o')
   pl.show()
 
+def gen_data(n_class=3):
+  N = 100 # number of points per class
+  D = 2 # dimensionality
+  K = n_class # number of classes
+  X = np.zeros((N*K,D)) # data matrix (each row = single example)
+  y = np.zeros(N*K, dtype='uint8') # class labels
+  for j in range(K):
+    ix = range(N*j,N*(j+1))
+    r = np.linspace(0.0,1,N) # radius
+    t = np.linspace(j*4,(j+1)*4,N) + np.random.randn(N)*0.2 # theta
+    X[ix] = np.c_[r*np.sin(t), r*np.cos(t)]
+    y[ix] = j
+
+  return X, y
+
+def test_classification3():
+  X, y = gen_data(5)
+
+  np.random.seed(1)
+  np.random.shuffle(X)
+  np.random.seed(1)
+  np.random.shuffle(y)
+
+#  X = net2.standardize(X)
+  model = net2.Net([net2.Dense(X.shape[1],100), 
+                   net2.Relu(),
+                   net2.Dense(100,5),
+                   net2.Sigmoid(),
+                 ])
+  model.fit(X, y, loss=net2.CCE(), optimizer=net2.SGD(1e-0, 1e-3), n_epoch=9000, batch_size=100, shuffle=True)
+
+  z = np.meshgrid(np.arange(-1.5,1.5,0.02), np.arange(-1.5,1.5,0.02))
+  X1 = np.c_[z[0].ravel(), z[1].ravel()]
+  y1 = model.predict(X1)
+  y1 = y1.argmax(axis=1)
+
+  pl.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=pl.cm.Spectral)
+  pl.contourf(z[0], z[1], y1.reshape(z[0].shape), cmap=pl.cm.Spectral, alpha=0.3)
+  pl.show()
+
 
 if __name__ == '__main__':
-  test_classification2()
+  test_classification3()
