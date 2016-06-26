@@ -1,20 +1,20 @@
 
 import numpy as np
 import pylab as pl
-import net2
+import net
 
 pl.style.use('ggplot')
 
 def test_regression():
   X = np.random.rand(50, 2)
   y = X.sum(axis=1, keepdims=True)**2
-  X = net2.standardize(X)
-  model = net2.Net([net2.Dense(X.shape[1],10), 
-                   net2.Relu(),
-                   net2.Dense(10,1),
-                   net2.Relu(),
+  X = net.standardize(X)
+  model = net.Net([net.Dense(X.shape[1],10), 
+                   net.Relu(),
+                   net.Dense(10,1),
+                   net.Relu(),
                  ])
-  model.fit(X, y, loss=net2.MSE(), optimizer=net2.SGD(0.01, 1.0), n_epoch=100, batch_size=1)
+  model.fit(X, y, loss=net.MSE(), optimizer=net.SGD(0.01, 1.0), n_epoch=100, batch_size=1)
   y_hat = model.predict(X)
 
   pl.plot(y, 'b->')
@@ -32,13 +32,13 @@ def test_classification():
   np.random.seed(1)
   np.random.shuffle(y)
 
-  X = net2.standardize(X)
-  model = net2.Net([net2.Dense(X.shape[1],10), 
-                   net2.Sigmoid(),
-                   net2.Dense(10,2),
-                   net2.Sigmoid(),
+  X = net.standardize(X)
+  model = net.Net([net.Dense(X.shape[1],10), 
+                   net.Sigmoid(),
+                   net.Dense(10,2),
+                   net.Sigmoid(),
                  ])
-  model.fit(X, y, loss=net2.MSE(), optimizer=net2.SGD(0.0021, 0.011), n_epoch=100, batch_size=10)
+  model.fit(X, y, loss=net.MSE(), optimizer=net.SGD(0.0021, 0.011), n_epoch=100, batch_size=10)
   y_hat = model.predict(X)
 
   y = y.argmax(axis=1)
@@ -58,13 +58,13 @@ def test_classification2():
   np.random.seed(1)
   np.random.shuffle(y)
 
-  X = net2.standardize(X)
-  model = net2.Net([net2.Dense(X.shape[1],10), 
-                   net2.Relu(),
-                   net2.Dense(10,2),
-                   net2.Relu(),
+  X = net.standardize(X)
+  model = net.Net([net.Dense(X.shape[1],10), 
+                   net.Relu(),
+                   net.Dense(10,2),
+                   net.Relu(),
                  ])
-  model.fit(X, y, loss=net2.CCE(), optimizer=net2.SGD(1e-2, 0.1), n_epoch=100, batch_size=10)
+  model.fit(X, y, loss=net.CCE(), optimizer=net.SGD(1e-2, 0.1), n_epoch=100, batch_size=10)
   y_hat = model.predict(X)
 
   y_hat = y_hat.argmax(axis=1) - 0.1
@@ -95,13 +95,13 @@ def test_classification3():
   np.random.seed(1)
   np.random.shuffle(y)
 
-#  X = net2.standardize(X)
-  model = net2.Net([net2.Dense(X.shape[1],100), 
-                   net2.Relu(),
-                   net2.Dense(100,5),
-                   net2.Sigmoid(),
+#  X = net.standardize(X)
+  model = net.Net([net.Dense(X.shape[1],100), 
+                   net.Relu(),
+                   net.Dense(100,5),
+                   net.Sigmoid(),
                  ])
-  model.fit(X, y, loss=net2.CCE(), optimizer=net2.SGD(1e-0, 1e-3), n_epoch=9000, batch_size=100, shuffle=True)
+  model.fit(X, y, loss=net.CCE(), optimizer=net.SGD(1e-0, 1e-3), n_epoch=2000, batch_size=100, shuffle=True)
 
   z = np.meshgrid(np.arange(-1.5,1.5,0.02), np.arange(-1.5,1.5,0.02))
   X1 = np.c_[z[0].ravel(), z[1].ravel()]
