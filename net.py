@@ -25,6 +25,9 @@ class Dense:
   def get_param_grad(self):
     return [(self.W, self.W_g), (self.b, self.b_g)]
 
+class Conv:
+  def __init__(self, 
+
 # activation layer
 ############################################################
 class Relu:
@@ -99,12 +102,12 @@ class Net:
   def fit(self, X, y, loss=MSE(), optimizer=SGD(lr=0.1, l2=0), n_epoch=1, batch_size=1, shuffle=True):
     n = X.shape[0]
     for i in range(n_epoch):
-#      if shuffle:
-#        seed = np.random.randint(n_epoch)
-#        np.random.seed(seed)
-#        np.random.shuffle(X)
-#        np.random.seed(seed)
-#        np.random.shuffle(y)
+      if shuffle:
+        seed = np.random.randint(n_epoch)
+        np.random.seed(seed)
+        np.random.shuffle(X)
+        np.random.seed(seed)
+        np.random.shuffle(y)
 
       batches = [(X[_:_+batch_size], y[_:_+batch_size]) for _ in range(0, n, batch_size)]
       for X_batch, y_batch in batches:
