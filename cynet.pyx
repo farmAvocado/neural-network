@@ -58,6 +58,7 @@ cdef class Dense:
     public float_t[:,:] inp
     public float_t[:,:] outp
     public int n_in, n_out
+    public float_t[:,:] b_mult  # serves as pseudo broadcasting
 
   def __cinit__(self, n_in, n_out):
     self.W = init_uniform(0, 1.0, (n_out, n_in))
@@ -68,6 +69,12 @@ cdef class Dense:
     self.outp = None
     self.n_in = n_in
     self.n_out = n_out
+    self.b_mult = np.ones((1, n_out), dtype=FLOAT_T)
+
+  def __dealloc__(self):
+    if self.outp is not None:
+      free(&self.outp[0,0])
+      self.outp = None
 
   cdef void forward(self, float_t[:,:] X):
     cdef:
@@ -82,3 +89,8 @@ cdef class Dense:
       self.outp = <float_t[:m,:n]>malloc(sizeof(float_t) * m * n)
 
     rmo_sgemm(X, 0, self.W, 1, self.outp)
+    # leverage blas, no manual broadcast function
+    rmo_sgemm(self.b_mult, 1, self.b, 0, self.outp, beta=1.0)
+
+  cdef void backward(self, float_t[:,:] X):
+    pass
