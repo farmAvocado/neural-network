@@ -18,7 +18,7 @@ DEF FLOAT_T = 'float32'
 #   B^T * A^T = C (2)
 # Since all A, B, C are C-contiguous (i.e. the traonsposation of Fortran-contiguous one),
 # we need to tell gemm that before multiply A and B, transpose them (i.e. transa = transb = 'T')
-cdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:,:] C) nogil:
+cpdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:,:] C, float_t alpha=1.0, float_t beta=0.0) nogil:
   cdef:
     char transa = 'N' if ta == 0 else 'T'
     char transb = 'N' if tb == 0 else 'T'
@@ -28,8 +28,6 @@ cdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:,
     int lda = A.shape[1]
     int ldb = B.shape[1]
     int ldc = C.shape[1]
-    float_t alpha = 1.0
-    float_t beta = 0.0
 
   sgemm(&transb, &transa,
         &m, &n, &k, &alpha,
