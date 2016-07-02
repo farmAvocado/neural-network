@@ -98,10 +98,12 @@ def test_classification3():
 #  X = net.standardize(X)
   model = net.Net([net.Dense(X.shape[1],100), 
                    net.Relu(),
-                   net.Dense(100,5),
+                   net.Dense(100,25),
+                   net.Relu(),
+                   net.Dense(25,5),
                    net.Sigmoid(),
                  ])
-  model.fit(X, y, loss=net.CCE(), optimizer=net.SGD(1e-0, 1e-3), n_epoch=2000, batch_size=100, shuffle=True)
+  model.fit(X, y, loss=net.CCE(), optimizer=net.SGD(1e-0, 1e-4), n_epoch=1000, batch_size=100, shuffle=True)
 
   z = np.meshgrid(np.arange(-1.5,1.5,0.02), np.arange(-1.5,1.5,0.02))
   X1 = np.c_[z[0].ravel(), z[1].ravel()]

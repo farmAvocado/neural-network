@@ -26,7 +26,7 @@ class Dense:
     return [(self.W, self.W_g), (self.b, self.b_g)]
 
 class Conv:
-  def __init__(self, 
+  pass
 
 # activation layer
 ############################################################
