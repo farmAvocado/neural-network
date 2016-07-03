@@ -35,7 +35,6 @@ cpdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:
         &A[0,0], &lda,
         &beta,
         &C[0,0], &ldc)
-  return
 
 cpdef void rmo_sgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_t alpha=1.0, float_t beta=0.0) :
   cdef:
@@ -46,27 +45,13 @@ cpdef void rmo_sgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_
     int incx = 1
     int incy = 1
 
-  print(transa, m, n, lda, incx, incy)
   sgemv(&transa,
         &m, &n, &alpha,
         &A[0,0], &lda,
         &x[0], &incx,
         &beta,
         &y[0], &incy)
-  return
 
-cpdef void csgemv(char transa, int m, int n, float_t[:,:] A, int lda, float_t[:] x, int incx, float_t[:] y, int incy):
-  cdef:
-    float_t alpha = 1.0
-    float_t beta = 0.0
-
-  sgemv(&transa,
-        &m, &n, &alpha,
-        &A[0,0], &lda,
-        &x[0], &incx,
-        &beta,
-        &y[0], &incy)
-  return
 
 # initialization
 ############################################################
@@ -78,6 +63,8 @@ cpdef init_uniform(float_t minx, float_t maxx, tuple shape):
 
 # connection layer
 ############################################################
+cdef float_t[:] ONES = np.ones(5000, dtype=FLOAT_T)
+
 cdef class Dense:
   cdef:
     public bint has_param
@@ -88,7 +75,7 @@ cdef class Dense:
     public float_t[:,:] inp
     public float_t[:,:] outp
     public int n_in, n_out
-    public float_t[:,:] b_mult  # serves as pseudo broadcasting
+    public float_t[:,:] err
 
   def __cinit__(self, n_in, n_out):
     self.W = init_uniform(0, 1.0, (n_out, n_in))
@@ -99,28 +86,40 @@ cdef class Dense:
     self.outp = None
     self.n_in = n_in
     self.n_out = n_out
-    self.b_mult = np.ones((1, n_out), dtype=FLOAT_T)
+    self.err = None
 
   def __dealloc__(self):
     if self.outp is not None:
       free(&self.outp[0,0])
       self.outp = None
+      free(&self.err[0,0])
+      self.err = None
 
-  cdef void forward(self, float_t[:,:] X):
+  cpdef void forward(self, float_t[:,:] X):
     cdef:
       int m = X.shape[0]
       int n = self.n_out
+      int k = self.n_in
 
     self.inp = X
     if self.outp is None:
       self.outp = <float_t[:m,:n]>malloc(sizeof(float_t) * m * n)
+      self.err = <float_t[:m,:k]>malloc(sizeof(float_t) * m * k)
     elif self.outp.shape[0] < m:
       free(&self.outp[0,0])
       self.outp = <float_t[:m,:n]>malloc(sizeof(float_t) * m * n)
+      free(&self.err[0,0])
+      self.err = <float_t[:m,:k]>malloc(sizeof(float_t) * m * k)
 
     rmo_sgemm(X, 0, self.W, 1, self.outp)
     # leverage blas, no manual broadcast function
-    rmo_sgemm(self.b_mult, 1, self.b, 0, self.outp, beta=1.0)
+    rmo_sgemm(<float_t[:1,:m]>&ONES[0], 1, 
+        <float_t[:1,:n]>&self.b[0], 0, self.outp, beta=1.0)
 
-  cdef void backward(self, float_t[:,:] X):
+  cpdef void backward(self, float_t[:,:] X):
+    cdef:
+      int m = X.shape[0]
+
     rmo_sgemm(X, 1, self.inp, 0, self.W_grad)
+    rmo_sgemv(X, 0, <float_t[:m]>&ONES[0], self.b_grad)
+    rmo_sgemm(X, 0, self.W, 0, self.err)
