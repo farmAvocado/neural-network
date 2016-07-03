@@ -4,12 +4,12 @@
 # cython: nonecheck=True
 
 import numpy as np
-from scipy.linalg.cython_blas cimport sgemm, sgemv
+from scipy.linalg.cython_blas cimport dgemm, dgemv
 from libc.stdlib cimport malloc, free
 from libc.string cimport memset, memcpy
 
-ctypedef float float_t
-DEF FLOAT_T = 'float32'
+ctypedef double float_t
+DEF FLOAT_T = 'double'
 
 # Fortan's gemm function computes 
 #   A * B = C^T (1)
@@ -18,7 +18,7 @@ DEF FLOAT_T = 'float32'
 #   B^T * A^T = C (2)
 # Since all A, B, C are C-contiguous (i.e. the traonsposation of Fortran-contiguous one),
 # we need to tell gemm that before multiply A and B, transpose them (i.e. transa = transb = 'T')
-cpdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:,:] C, float_t alpha=1.0, float_t beta=0.0) nogil:
+cpdef void rmo_dgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:,:] C, float_t alpha=1.0, float_t beta=0.0) nogil:
   cdef:
     char transa = 'N' if ta == 0 else 'T'
     char transb = 'N' if tb == 0 else 'T'
@@ -29,14 +29,14 @@ cpdef void rmo_sgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:
     int ldb = B.shape[1]
     int ldc = C.shape[1]
 
-  sgemm(&transb, &transa,
+  dgemm(&transb, &transa,
         &m, &n, &k, &alpha,
         &B[0,0], &ldb,
         &A[0,0], &lda,
         &beta,
         &C[0,0], &ldc)
 
-cpdef void rmo_sgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_t alpha=1.0, float_t beta=0.0) :
+cpdef void rmo_dgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_t alpha=1.0, float_t beta=0.0) :
   cdef:
     char transa = 'N' if ta == 1 else 'T'
     int m = A.shape[1]
@@ -45,7 +45,7 @@ cpdef void rmo_sgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_
     int incx = 1
     int incy = 1
 
-  sgemv(&transa,
+  dgemv(&transa,
         &m, &n, &alpha,
         &A[0,0], &lda,
         &x[0], &incx,
@@ -111,15 +111,15 @@ cdef class Dense:
       free(&self.err[0,0])
       self.err = <float_t[:m,:k]>malloc(sizeof(float_t) * m * k)
 
-    rmo_sgemm(X, 0, self.W, 1, self.outp)
+    rmo_dgemm(X, 0, self.W, 1, self.outp)
     # leverage blas, no manual broadcast function
-    rmo_sgemm(<float_t[:1,:m]>&ONES[0], 1, 
+    rmo_dgemm(<float_t[:1,:m]>&ONES[0], 1, 
         <float_t[:1,:n]>&self.b[0], 0, self.outp, beta=1.0)
 
   cpdef void backward(self, float_t[:,:] X):
     cdef:
       int m = X.shape[0]
 
-    rmo_sgemm(X, 1, self.inp, 0, self.W_grad)
-    rmo_sgemv(X, 0, <float_t[:m]>&ONES[0], self.b_grad)
-    rmo_sgemm(X, 0, self.W, 0, self.err)
+    rmo_dgemm(X, 1, self.inp, 0, self.W_grad)
+    rmo_dgemv(X, 0, <float_t[:m]>&ONES[0], self.b_grad)
+    rmo_dgemm(X, 0, self.W, 0, self.err)
