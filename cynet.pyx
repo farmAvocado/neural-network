@@ -61,6 +61,58 @@ cpdef init_uniform(float_t minx, float_t maxx, tuple shape):
   return RNG.uniform(minx, maxx, shape).astype(FLOAT_T)
 
 
+# structs
+############################################################
+cdef class Blob:
+  cdef:
+    public int ndim
+    public int[:] shape
+    public int cap
+    public float_t[:] data
+
+  def __cinit__(self, shape, data):
+    self.ndim = len(shape)
+    self.shape = np.zeros(10, dtype='int')
+    self.cap = 1
+    for i in range(self.ndim):
+      self.shape[i] = shape[i]
+      self.cap *= shape[i]
+
+    if data is None:
+      self.data = <float_t[:self.cap]>malloc(sizeof(float_t) * self.cap)
+    else:
+      self.data = data
+
+  def __dealloc__(self):
+    if self.data is not None:
+      free(&self.data[0])
+      self.data = None
+
+  cpdef int reshape(self, int[:] shape):
+    cdef:
+      int size = 1
+      int n = shape.shape[0]
+      int i
+
+    for i in range(n):
+      size *= shape[i]
+
+    if size <= self.cap:
+      for i in n:
+        self.shape[i] = shape[i]
+      self.ndim = n
+      return 0
+    return -1
+
+  cpdef int resize(self, int cap):
+    if cap < self.cap:
+      return 0
+    free(&self.data[0])
+    self.data = <float_t[:cap]>malloc(sizeof(float_t) * cap)
+    self.cap = cap
+    return 0
+
+
 # connection layer
 ############################################################
 cdef float_t[:] ONES = np.ones(5000, dtype=FLOAT_T)
