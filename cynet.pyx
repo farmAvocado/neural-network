@@ -36,7 +36,25 @@ cpdef void rmo_dgemm(float_t[:,:] A, bint ta, float_t[:,:] B, bint tb, float_t[:
         &beta,
         &C[0,0], &ldc)
 
-cpdef void rmo_dgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_t alpha=1.0, float_t beta=0.0) :
+cpdef void rmo_dgemm_blob(Blob A, bint ta, Blob B, bint tb, Blob C, float_t alpha=1.0, float_t beta=0.0) nogil:
+  cdef:
+    char transa = 'N' if ta == 0 else 'T'
+    char transb = 'N' if tb == 0 else 'T'
+    int m = C.shape[1]
+    int n = C.shape[0]
+    int k = B.shape[0] if transb == 'N' else B.shape[1]
+    int lda = A.shape[1]
+    int ldb = B.shape[1]
+    int ldc = C.shape[1]
+
+  dgemm(&transb, &transa,
+        &m, &n, &k, &alpha,
+        &B.data[0], &ldb,
+        &A.data[0], &lda,
+        &beta,
+        &C.data[0], &ldc)
+
+cpdef void rmo_dgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_t alpha=1.0, float_t beta=0.0):
   cdef:
     char transa = 'N' if ta == 1 else 'T'
     int m = A.shape[1]
@@ -51,6 +69,22 @@ cpdef void rmo_dgemv(float_t[:,:] A, bint ta, float_t[:] x, float_t[:] y, float_
         &x[0], &incx,
         &beta,
         &y[0], &incy)
+
+cpdef void rmo_dgemv_blob(Blob A, bint ta, Blob x, Blob y, float_t alpha=1.0, float_t beta=0.0):
+  cdef:
+    char transa = 'N' if ta == 1 else 'T'
+    int m = A.shape[1]
+    int n = A.shape[0]
+    int lda = A.shape[1]
+    int incx = 1
+    int incy = 1
+
+  dgemv(&transa,
+        &m, &n, &alpha,
+        &A.data[0], &lda,
+        &x.data[0], &incx,
+        &beta,
+        &y.data[0], &incy)
 
 
 # initialization
@@ -116,6 +150,7 @@ cdef class Blob:
 # connection layer
 ############################################################
 cdef float_t[:] ONES = np.ones(5000, dtype=FLOAT_T)
+cdef ONES_BLOB = Blob(shape=(5000,), data=np.ones(5000, dtype=FLOAT_T))
 
 cdef class Dense:
   cdef:
@@ -175,3 +210,68 @@ cdef class Dense:
     rmo_dgemm(X, 1, self.inp, 0, self.W_grad)
     rmo_dgemv(X, 0, <float_t[:m]>&ONES[0], self.b_grad)
     rmo_dgemm(X, 0, self.W, 0, self.err)
+
+cdef class Dense1:
+  cdef:
+    public bint has_param
+    public Blob W
+    public Blob b
+    public Blob W_grad
+    public Blob b_grad
+    public Blob inp
+    public Blob outp
+    public int n_in, n_out
+    public Blob err
+
+  def __cinit__(self, n_in, n_out):
+    self.W = Blob(shape=(n_out, n_in), 
+        data=init_uniform(0, 1.0, (n_out, n_in)).ravel())
+    self.b = Blob(shape=(n_out,),
+        data=np.zeros(n_out, dtype=FLOAT_T).ravel())
+    self.W_grad = Blob(shape=(n_out, n_in),
+        data=np.empty_like(self.W, dtype=FLOAT_T).ravel())
+    self.b_grad = Blob(shape=(n_out, n_in),
+        data=np.empty_like(self.b, dtype=FLOAT_T))
+    self.inp = None
+    self.outp = None
+    self.n_in = n_in
+    self.n_out = n_out
+    self.err = None
+
+#  def __dealloc__(self):
+#    if self.outp is not None:
+#      free(&self.outp[0,0])
+#      self.outp = None
+#      free(&self.err[0,0])
+#      self.err = None
+
+  cpdef void forward(self, Blob X):
+    cdef:
+      int m = X.shape[0]
+      int n = self.n_out
+      int k = self.n_in
+
+    self.inp = X
+    if self.outp is None:
+      self.outp = Blob(shape=(m,n), data=None)
+      self.err = Blob(shape=(m,k), data=None)
+    elif self.outp.shape[0] < m:
+      self.outp.resize(m*n)
+      self.err.resize(m*k)
+    elif self.outp.shape[0] > m:
+      self.outp.shape[0] = m
+
+    rmo_dgemm_blob(X, 0, self.W, 1, self.outp)
+    # leverage blas, no manual broadcast function
+    ONES_BLOB.reshape(shape=(1,m))
+    self.b.reshape(shape=(1,n))
+    rmo_dgemm_blob(ONES_BLOB, 1, self.b, 0, self.outp, beta=1.0)
+
+  cpdef void backward(self, Blob X):
+    cdef:
+      int m = X.shape[0]
+
+    rmo_dgemm_blob(X, 1, self.inp, 0, self.W_grad)
+    ONES_BLOB.reshape(shape=(m,))
+    rmo_dgemv_blob(X, 0, ONES_BLOB, self.b_grad)
+    rmo_dgemm_blob(X, 0, self.W, 0, self.err)

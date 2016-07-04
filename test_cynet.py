@@ -3,7 +3,7 @@ import numpy as np
 import cynet
 
 def test_dense():
-  x = np.arange(6, dtype='double').reshape(2,3)
+  x = cynet.Blob(shape=(3,2), data=np.arange(6, dtype='double').ravel())
   z = np.random.rand(2,2).astype('double')
   h = 1e-5
 
