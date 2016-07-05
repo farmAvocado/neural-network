@@ -30,7 +30,8 @@ def softmax(inp_x, inp_y):
   loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(z, y_) + tf.nn.l2_loss(w))
 
   opt = tf.train.GradientDescentOptimizer(0.1)
-  train_op = opt.minimize(loss)
+  glob_step = tf.Variable(0, trainable=False)
+  train_op = opt.minimize(loss, global_step=glob_step)
   init_op = tf.initialize_all_variables()
 
   with tf.Session() as sess:
