@@ -66,6 +66,9 @@ def take_1():
   floatX = tf.float32
   init_w = glorot_normal
 
+  x_val = np.linspace(-20, 20, 100)
+  x_val.shape = (-1,1)
+
   t_x = tf.placeholder(dtype=floatX, shape=[None,1])
   t_y = tf.placeholder(dtype=floatX, shape=[None,1])
 
@@ -91,7 +94,7 @@ def take_1():
 
   t_y_hat = t_a3
   t_loss = tf.reduce_mean(tf.square(t_y_hat - t_y))
-  t_op = tf.train.MomentumOptimizer(0.01, 0.95).minimize(t_loss)
+  t_op = tf.train.MomentumOptimizer(0.008, 0.95).minimize(t_loss)
 
   S = tf.Session()
   S.run(tf.initialize_all_variables())
@@ -101,7 +104,7 @@ def take_1():
   is_shuffle = False
   ind = np.arange(x.shape[0])
 
-  y_hat = S.run(t_y_hat, feed_dict={t_x:x})
+  y_hat = S.run(t_y_hat, feed_dict={t_x:x_val})
   pl.scatter(x, y)
   upd, = pl.plot(x, np.random.rand(x.shape[0]), 'c-+')
   for i in range(n_iter):
@@ -119,8 +122,8 @@ def take_1():
       ix += n_batch
 
     print('loss: {}'.format(total_loss/total_batch))
-    y_hat = S.run(t_y_hat, feed_dict={t_x:x})
-    upd.set_data(x, y_hat)
+    y_hat = S.run(t_y_hat, feed_dict={t_x:x_val})
+    upd.set_data(x_val, y_hat)
     pl.gcf().canvas.draw()
 
 
