@@ -125,30 +125,3 @@ class DataIter:
       ix += self.batch_size
 
 
-class Plot1D:
-  def __init__(self, x):
-    self.x = x
-    self.upd, = pl.plot(x, np.random.rand(x.shape[0]), 'c-+')
-
-  def __call__(self, model):
-    y = model.predict(self.x)
-    self.upd.set_data(self.x, y)
-    pl.gcf().canvas.draw()
-
-
-if __name__ == '__main__':
-  model = Net([Dense(1,100), Sigmoid(), Dense(100, 10), Sigmoid(), Dense(10,1)])
-  model.build('regression')
-
-  from regr_1d import spline
-  x, y = spline(20, 50)
-  x.shape = (-1,1)
-  y.shape = (-1,1)
-  data_iter = DataIter(x, y)
-
-  import pylab as pl
-  pl.ion()
-  pl.scatter(x, y)
-  model.fit(data_iter, 3000, 50, lr=0.01, dstep=500, 
-      callbacks=[Plot1D(np.linspace(-10, 10, 100).reshape(-1,1))])
-  pl.waitforbuttonpress()
