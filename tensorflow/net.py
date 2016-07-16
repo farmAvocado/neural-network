@@ -72,7 +72,7 @@ class Net:
     elif task == 'classification':
       self.t_loss = tf.reduce_mean(tf.sparse_softmax_cross_entropy_with_logits(t_out, self.t_y)) + t_reg
 
-  def fit(self, data_iter, n_iter, batch_size, lr=0.01, momentum=0.9, dr=0.95, dstep=1000, every=1, shuffle=True, callbacks=[]):
+  def fit(self, data_iter, n_iter, batch_size, lr=0.01, momentum=0, dr=1, dstep=1000, every=1, shuffle=False, callbacks=[]):
     t_gstep = tf.Variable(0, trainable=False)
     t_lr = tf.train.exponential_decay(lr, t_gstep, dstep, dr, staircase=True)
     self.t_opt = tf.train.MomentumOptimizer(t_lr, momentum).minimize(self.t_loss)
