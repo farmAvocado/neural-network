@@ -47,9 +47,6 @@ class PixelPlot:
     pix = model.predict(self.pos)
     pix.shape = (self.w, self.h, 3)
     pix /= pix.max()
-#    alpha = np.ones((self.w, self.h, 1))
-#    pix = np.append(pix, alpha, axis=-1)
-    print(pix)
     self.upd.set_data(pix)
     pl.gcf().canvas.draw()
 
