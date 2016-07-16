@@ -8,7 +8,7 @@ pl.ion()
 
 def image(sample=1):
   from skimage.io import imread
-  img = imread('../data/cat.jpg')
+  img = imread('../data/fractal.jpg')
   return img[::sample,::sample,:3]
 
 
@@ -45,8 +45,11 @@ class PixelPlot:
 
   def __call__(self, model):
     pix = model.predict(self.pos)
-#    pix = np.floor(pix*255)
     pix.shape = (self.w, self.h, 3)
+    pix /= pix.max()
+#    alpha = np.ones((self.w, self.h, 1))
+#    pix = np.append(pix, alpha, axis=-1)
+    print(pix)
     self.upd.set_data(pix)
     pl.gcf().canvas.draw()
 
@@ -66,5 +69,5 @@ if __name__ == '__main__':
               ])
   model.build('regression')
 
-  model.fit(piter, 20000, 500, every=100, callbacks=[PixelPlot(img.shape[0], img.shape[1])])
+  model.fit(piter, 50000, 5, lr=0.01, dr=1.0, dstep=1e10, momentum=0.9, every=100, callbacks=[PixelPlot(img.shape[0], img.shape[1])])
   pl.waitforbuttonpress()
