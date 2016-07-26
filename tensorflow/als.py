@@ -3,44 +3,68 @@
 import tensorflow as tf
 import numpy as np
 
+floatX = tf.float32
+intX = tf.int32
+init = tf.truncated_normal
 
-if __name__ == '__main__':
-  floatX = tf.float32
-  intX = tf.int32
-  init = tf.truncated_normal
-
-  lens = np.loadtxt('../data/ml-100k/u.data')
-
-  n_u = 944
-  n_v = 1683
-  n_f = 100
-
-  u_ind = lens[:,0]
-  v_ind = lens[:,1]
-  y = lens[:,2]
-
-  t_u_ind = tf.placeholder(dtype=intX, shape=[None])
-  t_v_ind = tf.placeholder(dtype=intX, shape=[None])
-  t_ind = t_u_ind * n_v + t_v_ind
+def als(data, n_u, n_v, n_f, val_data=None, n_iter=1000, batch_size=100, lr=0.01, mmt=0.9, l2=0):
+  t_index = tf.placeholder(dtype=intX, shape=[None])
   t_y = tf.placeholder(dtype=floatX, shape=[None])
 
-  t_u = tf.Variable(init(shape=[n_u, n_f]))
-  t_v = tf.Variable(init(shape=[n_v, n_f]))
+  # latent factors and bias for each u
+  t_u = tf.Variable(init(shape=[n_u,n_f]))
   t_ub = tf.Variable(init(shape=[n_u,1]))
-  t_vb = tf.Variable(init(shape=[1, n_v]))
-  t_r = tf.matmul(t_u, t_v, transpose_b=True) + t_ub + t_vb
 
-  t_y_hat = tf.gather(tf.reshape(t_r, [-1]), t_ind)
+  # latent factors and bias for each v
+  t_v = tf.Variable(init(shape=[n_f,n_v]))
+  t_vb = tf.Variable(init(shape=[1,n_v]))
 
-  t_loss = tf.reduce_mean(tf.square(t_y - t_y_hat)) + 0.1 * (tf.reduce_sum(tf.square(t_u)) + tf.reduce_sum(tf.square(t_v)))
-  t_opt = tf.train.MomentumOptimizer(0.1, 0.9)
-  t_train = t_opt.minimize(t_loss)
+  t_r = tf.matmul(t_u, t_v) + t_ub + t_vb
+  t_y_hat = tf.gather(tf.reshape(t_r,[-1]), t_index)
+  t_loss = tf.reduce_mean(tf.square(t_y - t_y_hat)) + l2 * (tf.nn.l2_loss(t_u) + tf.nn.l2_loss(t_v))
+  t_opt = tf.train.MomentumOptimizer(lr, mmt)
+  alt = [t_opt.minimize(t_loss, var_list=var) for var in [[t_u,t_ub], [t_v,t_vb]]]
 
   S = tf.Session()
   S.run(tf.initialize_all_variables())
 
-  for i in range(2000):
-    rez = S.run([t_loss, t_train, t_r], feed_dict={t_u_ind:u_ind, t_v_ind:v_ind, t_y:y})
-    print(rez[0]) #, rez[2], y)
+  index = data[:,0] * n_v + data[:,1]
+  y = data[:,2]
+  if val_data is not None:
+    t_val_index = tf.placeholder(dtype=intX, shape=[None])
+    t_val_y = tf.placeholder(dtype=floatX, shape=[None])
+    t_val_y_hat = tf.gather(tf.reshape(t_r,[-1]), t_val_index)
+    t_val_loss = tf.reduce_mean(tf.square(t_val_y - t_val_y_hat))
+    val_index = val_data[:,0] * n_v + val_data[:,1]
+    val_y = val_data[:,2]
 
-  np.savetxt('/tmp/a', rez[2], '%.3f')
+  for i in range(n_iter):
+    ix = 0
+    total_loss = 0
+    total_updates = 0
+    while ix < index.shape[0]:
+      for a in alt:
+        rez = S.run([t_loss, a, t_y_hat], 
+            feed_dict={t_index:index[ix:ix+batch_size], t_y:y[ix:ix+batch_size]})
+        total_loss += rez[0]
+        total_updates += 1
+      ix += batch_size
+
+    s = 'iter {}, train loss = {}'.format(i, total_loss/total_updates)
+    if val_data is not None:
+      rez = S.run([t_val_loss], feed_dict={t_val_index:val_index, t_val_y:val_y})
+      s += ', val loss = {}'.format(rez[0])
+    print(s)
+
+  return S.run([t_u, t_ub, t_v, t_vb])
+
+
+if __name__ == '__main__':
+  import os.path
+  lens = np.loadtxt(os.path.expanduser('../data/ml-100k/u.data'))
+  lens[:,:2] -= 1
+
+  u,ub,v,vb = als(lens[:80000,:3], 943, 1682, 500, lens[80000:,:3], 
+                n_iter=100, batch_size=1000, lr=0.2, mmt=0.9, l2=0.001)
+  r = np.dot(u, v) + ub + vb
+  np.savetxt('/tmp/a', r[lens[:,0].astype('int'), lens[:,1].astype('int')], '%.2f')
