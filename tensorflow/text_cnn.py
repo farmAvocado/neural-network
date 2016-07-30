@@ -114,10 +114,11 @@ def data_iter(X, y, n_iter=10, batch_size=100, shuffle=True):
 
 if __name__ == '__main__':
   X,y,vocab = load_data()
-  model = CNN(X.shape[1], 2, len(vocab) + 1, 128, [3,4,5], 128)
+  model = CNN(X.shape[1], 2, len(vocab) + 1, 128, [3,4,5], 128, 0.001)
 
   # train
-  t_opt = tf.train.AdamOptimizer(1e-3)
+  t_opt = tf.train.AdamOptimizer(0.01)
+  #t_opt = tf.train.MomentumOptimizer(0.01, 0.9)
   t_gstep = tf.Variable(0, dtype=intX, trainable=False)
   t_train = t_opt.minimize(model.t_loss, global_step=t_gstep)
 
