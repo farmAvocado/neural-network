@@ -32,15 +32,15 @@ class SGD:
     self.input_pref = tf.placeholder(dtype=floatX, shape=[None])
     self.input_conf = tf.placeholder(dtype=floatX, shape=[None])
 
-    self.U = tf.Variable(tf.random_uniform(shape=[n_u,n_latent], minval=0, maxval=1), name='U')
-    self.V = tf.Variable(tf.random_uniform(shape=[n_v,n_latent], minval=0, maxval=1), name='V')
-    self.R = self.matmul(self.U, self.V, transpose_b=True)
+    self.U = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_u,n_latent], minval=0, maxval=1), name='U')
+    self.V = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_v,n_latent], minval=0, maxval=1), name='V')
+    self.R = tf.matmul(self.U, self.V, transpose_b=True)
 
     R_flat = tf.reshape(self.R, [-1])
     index = (self.input_u_index * n_v) + self.input_v_index
     y_hat = tf.gather(R_flat, index)
 
-    loss = self.reduce_mean(self.conf * tf.square(self.input_pref - y_hat))
+    loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - y_hat))
     loss += l2 * (tf.nn.l2_loss(self.U) + tf.nn.l2_loss(self.V))
     self.loss = loss
 
@@ -49,10 +49,12 @@ class SGD:
 
     self.S = tf.Session()
 
-  def fit(self, data_iter):
+  def fit(self, data_iter, log_every=100):
     # initialize or reset all variables' value
     self.S.run(tf.initialize_all_variables())
 
+    total_loss = 0
+    total_updates = 0
     # data_iter should yield batches, as a dict
     for batch in data_iter:
       u_index = batch['u_index']
@@ -66,7 +68,13 @@ class SGD:
                         self.input_pref: pref,
                         self.input_conf: conf
                       })
-      print('loss = {}'.format(rez[1]))
+      total_loss += rez[1]
+      total_updates += 1
+
+      if total_updates % log_every == 0:
+        print('loss = {}'.format(total_loss / total_updates))
+        total_loss = 0
+        total_updates = 0
 
 
 class ImplictMLIter:
@@ -77,18 +85,19 @@ class ImplictMLIter:
     conf = raw[:,2].astype('float')
     pref = (conf > 0).astype('float')
 
-    n_u = u_index.shape[0]
-    n_v = v_index.shape[0]
-    conf = sparse.csr_matrix((conf, (u_index,v_index)), shape=[n_u,n_v])
-    pref = sparse.csr_matrix((pref, (u_index,v_index)), shape=[n_u,n_v])
+    self.n_u = u_index.max() + 1
+    self.n_v = v_index.max() + 1
 
-    grid = np.meshgrid(np.arange(n_u), np.arange(n_v), indexing='ij')
-    self.u_index = grid[0].reshape(-1)
-    self.v_index = grid[1].reshape(-1)
-    self.conf = conf.todense().reshape(-1)
-    self.pref = pref.todense().reshape(-1)
+    conf = sparse.csr_matrix((conf, (u_index,v_index)), shape=[self.n_u,self.n_v])
+    pref = sparse.csr_matrix((pref, (u_index,v_index)), shape=[self.n_u,self.n_v])
 
-    index = np.random.permutation(n_u * n_v)
+    grid = np.meshgrid(np.arange(self.n_u), np.arange(self.n_v), indexing='ij')
+    self.u_index = grid[0].ravel()
+    self.v_index = grid[1].ravel()
+    self.conf = conf.toarray().ravel()
+    self.pref = pref.toarray().ravel()
+
+    index = np.random.permutation(self.n_u * self.n_v)
     n_train = int(raw.shape[0] * train_split)
     self.train_index = index[:n_train]
     self.val_index = index[n_train:]
@@ -126,6 +135,6 @@ class ImplictMLIter:
 
 if __name__ == '__main__':
   data_iter = ImplictMLIter('../data/ml-100k/u.data')
-#  for batch in data_iter('val'):
-#    print(batch)
-#    break
+
+  mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100)
+  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000))
