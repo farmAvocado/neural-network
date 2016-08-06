@@ -99,6 +99,22 @@ class SGD:
 
         print('{} updates, train_loss = {}, val_loss = {}'.format(total_batches, train_loss, val_loss))
 
+  def predict(self, data_iter, outf=None):
+    if outf:
+      ofp = open(outf, 'w')
+
+    for batch in data_iter:
+      u_index = batch['u_index']
+      v_index = batch['v_index']
+
+      rez = self.S.run([self.y_hat], feed_dict={
+                        self.input_u_index: u_index,
+                        self.input_v_index: v_index,
+                      })
+      ofp.write('\n'.join(str(_) for _ in rez[0]) + '\n')
+    ofp.close()
+
+
 class MLImplicitData:
   def __init__(self, fname, train_split=0.8):
     raw = np.loadtxt(fname)
@@ -116,7 +132,7 @@ class MLImplicitData:
     grid = np.meshgrid(np.arange(self.n_u), np.arange(self.n_v), indexing='ij')
     self.u_index = grid[0].ravel()
     self.v_index = grid[1].ravel()
-    self.conf = conf.toarray().ravel()
+    self.conf = conf.toarray().ravel() + 1
     self.pref = pref.toarray().ravel()
 
     index = np.random.permutation(self.n_u * self.n_v)
@@ -177,5 +193,16 @@ if __name__ == '__main__':
   data_iter = MLImplicitData('../data/ml-100k/u.data', train_split=0.8)
 
   mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100, lr=0.1, l2=1e-2)
-  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000, shuffle=True), log_every=1000,
+  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000, shuffle=True), log_every=2000,
       val_data_iter=data_iter('val', n_iter=1, batch_size=1000, shuffle=True))
+
+  test_iter = data_iter('val', n_iter=1, batch_size=1000, shuffle=False)
+  mf_sgd.predict(test_iter, '/tmp/hat.txt')
+
+  ofp = open('/tmp/truth.txt', 'w')
+  for batch in test_iter:
+    pref = batch['pref']
+    conf = batch['conf']
+
+    ofp.write('\n'.join(str(_[0]) + ',' + str(_[1]) for _ in zip(pref, conf)) + '\n')
+  ofp.close()
