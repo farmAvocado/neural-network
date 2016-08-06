@@ -47,6 +47,7 @@ class SGD:
     self.loss_with_reg = self.loss + l2 * (tf.nn.l2_loss(U) + tf.nn.l2_loss(V))
 
     self.opt = tf.train.MomentumOptimizer(lr, mmt)
+    #self.opt = tf.train.AdamOptimizer()
     self.train = self.opt.minimize(self.loss_with_reg)
 
     self.S = tf.Session()
@@ -173,8 +174,8 @@ class DictBatchIter:
 
 
 if __name__ == '__main__':
-  data_iter = MLImplicitData('../data/ml-100k/u.data', train_split=0.9)
+  data_iter = MLImplicitData('../data/ml-100k/u.data', train_split=0.8)
 
-  mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100, lr=0.1)
-  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000), 
-      val_data_iter=data_iter('val', n_iter=1, batch_size=1000))
+  mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100, lr=0.1, l2=1e-2)
+  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000, shuffle=True), log_every=1000,
+      val_data_iter=data_iter('val', n_iter=1, batch_size=1000, shuffle=True))
