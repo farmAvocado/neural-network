@@ -32,16 +32,19 @@ class SGD:
     self.input_pref = tf.placeholder(dtype=floatX, shape=[None])
     self.input_conf = tf.placeholder(dtype=floatX, shape=[None])
 
-    self.U = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_u,n_latent], minval=0, maxval=1), name='U')
-    self.V = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_v,n_latent], minval=0, maxval=1), name='V')
-    U_embed = tf.nn.embedding_lookup(self.U, self.input_u_index)
-    V_embed = tf.nn.embedding_lookup(self.V, self.input_v_index)
+    U = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_u,n_latent], minval=0, maxval=1), name='U')
+    V = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_v,n_latent], minval=0, maxval=1), name='V')
+    U_embed = tf.nn.embedding_lookup(U, self.input_u_index)
+    V_embed = tf.nn.embedding_lookup(V, self.input_v_index)
+    Ub = tf.Variable(tf.constant(0.1, shape=[n_u], dtype=floatX))
+    Vb = tf.Variable(tf.constant(0.1, shape=[n_v], dtype=floatX))
 
-    self.R = tf.matmul(U_embed, V_embed, transpose_b=True)
-    y_hat = tf.diag_part(self.R)
+    R = tf.matmul(U_embed, V_embed, transpose_b=True)
+    self.y_hat = tf.diag_part(R) + tf.gather(Ub, self.input_u_index) \
+                  + tf.gather(Vb, self.input_v_index)
 
-    self.loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - y_hat))
-    self.loss_with_reg = self.loss + l2 * (tf.nn.l2_loss(self.U) + tf.nn.l2_loss(self.V))
+    self.loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - self.y_hat))
+    self.loss_with_reg = self.loss + l2 * (tf.nn.l2_loss(U) + tf.nn.l2_loss(V))
 
     self.opt = tf.train.MomentumOptimizer(lr, mmt)
     self.train = self.opt.minimize(self.loss_with_reg)
@@ -94,8 +97,6 @@ class SGD:
           val_loss = total_val_loss / total_val_batches
 
         print('{} updates, train_loss = {}, val_loss = {}'.format(total_batches, train_loss, val_loss))
-        total_loss = 0
-        total_batches = 0
 
 class MLImplicitData:
   def __init__(self, fname, train_split=0.8):
@@ -174,6 +175,6 @@ class DictBatchIter:
 if __name__ == '__main__':
   data_iter = MLImplicitData('../data/ml-100k/u.data', train_split=0.9)
 
-  mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100)
+  mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100, lr=0.1)
   mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000), 
       val_data_iter=data_iter('val', n_iter=1, batch_size=1000))
