@@ -40,21 +40,20 @@ class SGD:
     self.R = tf.matmul(U_embed, V_embed, transpose_b=True)
     y_hat = tf.diag_part(self.R)
 
-    loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - y_hat))
-    loss += l2 * (tf.nn.l2_loss(self.U) + tf.nn.l2_loss(self.V))
-    self.loss = loss
+    self.loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - y_hat))
+    self.loss_with_reg = self.loss + l2 * (tf.nn.l2_loss(self.U) + tf.nn.l2_loss(self.V))
 
     self.opt = tf.train.MomentumOptimizer(lr, mmt)
-    self.train = self.opt.minimize(self.loss)
+    self.train = self.opt.minimize(self.loss_with_reg)
 
     self.S = tf.Session()
 
-  def fit(self, data_iter, log_every=100):
+  def fit(self, data_iter, log_every=100, val_data_iter=None):
     # initialize or reset all variables' value
     self.S.run(tf.initialize_all_variables())
 
     total_loss = 0
-    total_updates = 0
+    total_batches = 0
     # data_iter should yield batches, as a dict
     for batch in data_iter:
       u_index = batch['u_index']
@@ -69,15 +68,36 @@ class SGD:
                         self.input_conf: conf
                       })
       total_loss += rez[1]
-      total_updates += 1
+      total_batches += 1
 
-      if total_updates % log_every == 0:
-        print('loss = {}'.format(total_loss / total_updates))
+      if total_batches % log_every == 0:
+        train_loss = total_loss / total_batches
+
+        val_loss = None
+        if val_data_iter:
+          total_val_loss = 0
+          total_val_batches = 0
+          for batch in val_data_iter:
+            u_index = batch['u_index']
+            v_index = batch['v_index']
+            pref = batch['pref']
+            conf = batch['conf']
+
+            rez = self.S.run([self.loss], feed_dict={
+                              self.input_u_index: u_index,
+                              self.input_v_index: v_index,
+                              self.input_pref: pref,
+                              self.input_conf: conf
+                            })
+            total_val_loss += rez[0]
+            total_val_batches += 1
+          val_loss = total_val_loss / total_val_batches
+
+        print('{} updates, train_loss = {}, val_loss = {}'.format(total_batches, train_loss, val_loss))
         total_loss = 0
-        total_updates = 0
+        total_batches = 0
 
-
-class ImplictMLIter:
+class MLImplicitData:
   def __init__(self, fname, train_split=0.8):
     raw = np.loadtxt(fname)
     u_index = raw[:,0].astype('int') - 1
@@ -102,19 +122,37 @@ class ImplictMLIter:
     self.train_index = index[:n_train]
     self.val_index = index[n_train:]
 
-    self._index = self.train_index
-
   def __call__(self, flag='train', shuffle=False, n_iter=1, batch_size=100):
+    if flag == 'train':
+      return DictBatchIter(
+            self.u_index[self.train_index],
+            self.v_index[self.train_index],
+            self.pref[self.train_index],
+            self.conf[self.train_index],
+            shuffle,
+            n_iter,
+            batch_size)
+    else:
+      return DictBatchIter(
+            self.u_index[self.val_index],
+            self.v_index[self.val_index],
+            self.pref[self.val_index],
+            self.conf[self.val_index],
+            shuffle,
+            n_iter,
+            batch_size)
+
+class DictBatchIter:
+  def __init__(self, u_index, v_index, pref, conf, shuffle=True, n_iter=1, batch_size=100):
+    self.u_index = u_index
+    self.v_index = v_index
+    self.pref = pref
+    self.conf = conf
+
     self.shuffle = shuffle
     self.n_iter = n_iter
     self.batch_size = batch_size
-
-    if flag == 'train':
-      self._index = self.train_index
-    else:
-      self._index = self.val_index
-
-    return iter(self)
+    self._index = np.arange(self.u_index.shape[0])
 
   def __iter__(self):
     for it in range(self.n_iter):
@@ -134,7 +172,8 @@ class ImplictMLIter:
 
 
 if __name__ == '__main__':
-  data_iter = ImplictMLIter('../data/ml-100k/u.data')
+  data_iter = MLImplicitData('../data/ml-100k/u.data', train_split=0.9)
 
   mf_sgd = SGD(n_u=data_iter.n_u, n_v=data_iter.n_v, n_latent=100)
-  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000))
+  mf_sgd.fit(data_iter('train', n_iter=100, batch_size=1000), 
+      val_data_iter=data_iter('val', n_iter=1, batch_size=1000))
