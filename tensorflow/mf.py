@@ -34,11 +34,11 @@ class SGD:
 
     self.U = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_u,n_latent], minval=0, maxval=1), name='U')
     self.V = tf.Variable(tf.random_uniform(dtype=floatX, shape=[n_v,n_latent], minval=0, maxval=1), name='V')
-    self.R = tf.matmul(self.U, self.V, transpose_b=True)
+    U_embed = tf.nn.embedding_lookup(self.U, self.input_u_index)
+    V_embed = tf.nn.embedding_lookup(self.V, self.input_v_index)
 
-    R_flat = tf.reshape(self.R, [-1])
-    index = (self.input_u_index * n_v) + self.input_v_index
-    y_hat = tf.gather(R_flat, index)
+    self.R = tf.matmul(U_embed, V_embed, transpose_b=True)
+    y_hat = tf.diag_part(self.R)
 
     loss = tf.reduce_mean(self.input_conf * tf.square(self.input_pref - y_hat))
     loss += l2 * (tf.nn.l2_loss(self.U) + tf.nn.l2_loss(self.V))
